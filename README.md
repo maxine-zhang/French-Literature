@@ -100,3 +100,18 @@ MIT，见 [LICENSE](LICENSE)。第三方依赖遵循各自许可证。请勿把�
 模型与参数依据：[OpenAI Speech 参数定义](https://github.com/openai/openai-python/blob/main/src/openai/types/audio/speech_create_params.py)、[语音合成文档](https://developers.openai.com/api/docs/guides/text-to-speech)。
 
 开发验证：`node --test tests/api.test.cjs`，`npm run typecheck`，`npm run build`。浏览器集成检查见 `tests/reader-smoke.cjs`，先启动应用，再运行 `node tests/reader-smoke.cjs`（需要 Playwright 和 Chromium；测试模拟 AI/语音响应，不产生真实 API 费用）。
+
+
+## 本地词典（2026-10 更新）
+
+悬浮、键盘聚焦或点击单词时查询浏览器内的词典，不再自动调用 AI。弹窗显示多个词义与来源，中文优先，可切换英文；点击「AI 解释本句」才发送词和当前段落。AI 出错不会清除本地释义。
+
+「词典书房」提供法中、法英查询和英法反查，以及个人 JSON 词库导入（20 MB / 100000 词条）。下载页面中的示例了解格式。导入数据只保存在当前浏览器的独立 IndexedDB 中；不上传，也不包含在现有学习备份内，请保留原始词库文件。词库文本按纯文本渲染。
+
+内置资源：FreeDict fra-zho 2025.11.23（10947 词条，WikDict / Wiktionary / DBnary，CC BY-SA 3.0）；fra-eng 0.4.1（8504 个有效译文词条，GPL-2.0-or-later，Horst Eyermann / John Darrington / FreeDict）；eng-fra 0.1.6（8799 词条，GPL-2.0-or-later，FreeDict 各贡献者）。动词词形来自 Lefff，经 french-verbs-lefff 3.4.0 分发，数据许可为 LGPL-LR，不是该包代码的 Apache 许可。应用代码维持 MIT，各词库按自身许可独立分发。词典书房提供许可、原始 TEI 和原始变位 JSON 下载，包含署名信息。
+
+`npm run dictionaries` 在开发、类型检查及生产构建前自动准备词库，下载固定版本并验证校验和，再生成按首字母分片的 JSON。需 Node.js 22.13+、系统 tar（支持 xz）及对 download.freedict.org / registry.npmjs.org 的网络访问。派生数据保留词条、词性、音标、性别和译文；未自动选择上下文义项。新增词库版本需同步修改脚本 revision，缓存按版本隔离。
+
+首次查词按需下载词典和变位分块；浏览器 CacheStorage 与内存复用数据。已缓存分块可在断网时查询，但本功能不保证整站离线启动。浏览器禁用缓存时仍可在线使用。Lefff 对应关系用于动词还原；名词复数、阴阳性采用候选匹配并标注「可能的原形」，不冒充精确语法分析。
+
+验证：`node --test tests/dictionary.test.cjs tests/api.test.cjs`，`npm run typecheck`，`npm run build`。

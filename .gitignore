@@ -7,3 +7,9 @@ dist/
 *.tsbuildinfo
 .DS_Store
 *.log
+.dictionary-sources/
+public/dictionaries/fra-zho/
+public/dictionaries/fra-eng/
+public/dictionaries/eng-fra/
+public/dictionaries/forms/
+public/dictionaries/manifest.json

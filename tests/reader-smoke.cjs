@@ -35,17 +35,23 @@ function wav(){const samples=24000*2,buffer=Buffer.alloc(44+samples*2);buffer.wr
  const paragraph=page.locator('.paragraph').first(),tokens=paragraph.locator('.word-token');
  await tokens.nth(0).hover();await page.waitForTimeout(80);await tokens.nth(1).hover();
  await page.getByRole('dialog',{name:'matin 的释义',exact:true}).waitFor();
+ await page.getByText('本地词典 · 不调用 AI',{exact:true}).waitFor();
+ await page.getByRole('dialog').getByRole('button',{name:'收藏此义项',exact:true}).first().waitFor();
+ assert.equal(lookups.length,0,'hover must never call the AI service');
+ await page.getByRole('dialog').getByRole('button',{name:'AI 解释本句',exact:true}).click();
  await page.getByText('matin：本句中的中文释义。',{exact:true}).waitFor();
  assert.equal(lookups.length,1);assert.match(lookups[0].context,/Chaque matin/);
- await page.getByRole('dialog').getByRole('button',{name:'加入生词本',exact:true}).click();
+ await page.getByRole('dialog').getByRole('button',{name:'收藏 AI 释义',exact:true}).click();
  await page.getByRole('button',{name:'保存到生词本',exact:true}).click();
  await page.getByRole('button',{name:'生词本',exact:true}).click();
  assert.equal(await page.getByRole('textbox',{name:'编辑释义',exact:true}).inputValue(),'matin：本句中的中文释义。');
- console.log('PASS: debounced contextual hover lookup and saving the meaning to vocabulary');
+ console.log('PASS: local hover makes zero AI calls; manual AI explanation and saving work');
  await page.getByRole('button',{name:'沉浸阅读',exact:true}).click();
  await page.locator('.paragraph').first().locator('.word-token').nth(1).hover();
  await page.getByRole('dialog',{name:'matin 的释义',exact:true}).waitFor();
- assert.equal(lookups.length,1,'identical context should use lookup cache');
+ await page.getByRole('dialog').getByRole('button',{name:'AI 解释本句',exact:true}).click();
+ await page.getByText('matin：本句中的中文释义。',{exact:true}).waitFor();
+ assert.equal(lookups.length,1,'manual AI explanations should use the contextual cache');
  await page.getByRole('dialog').getByRole('button',{name:'关闭释义',exact:true}).click();
  await page.getByRole('button',{name:'连续朗读',exact:true}).click();
  await page.waitForFunction(()=>document.querySelector('audio')===null); // playback uses an off-DOM HTMLAudioElement
