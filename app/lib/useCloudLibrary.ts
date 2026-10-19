@@ -29,7 +29,7 @@ export function useCloudLibrary(books:Book[],ready:boolean,translations:Record<s
    if(cancelled)return;setAvailable(true);setRecords(Object.fromEntries(all.map(r=>[r.id,r])));known.current=new Set(all.map(r=>r.id));
    // Restore cloud translations before starting automatic AI translation.
    const additions:Book[]=[],merged:Record<string,string>={};
-   for(const record of all){if(cancelled)return;const data=await response(await fetch(`/api/books?id=${encodeURIComponent(record.id)}`));if(!latest.current.books.some(b=>b.id===record.id))additions.push(parseBook(data.book));if(data.translations&&typeof data.translations==='object')for(const [key,value]of Object.entries(data.translations))if(key.startsWith(record.id+':')&&typeof value==='string'){merged[key]=value;confirmed.current[key]=value}}
+   for(const record of all){if(cancelled)return;const data=await response(await fetch(`/api/books?id=${encodeURIComponent(record.id)}`));const local=latest.current.books.find(b=>b.id===record.id);if(!local||(!local.toc&&data.book.toc))additions.push(parseBook(data.book));if(data.translations&&typeof data.translations==='object')for(const [key,value]of Object.entries(data.translations))if(key.startsWith(record.id+':')&&typeof value==='string'){merged[key]=value;confirmed.current[key]=value}}
    if(cancelled)return;latest.current.onTranslations(merged);if(additions.length)latest.current.onBooks(additions);setStatus('云端书库已连接，已读取保存的译文。');
   }catch(e){if(!cancelled)setStatus(e instanceof Error?e.message:'云端书库连接失败，请重试。')}finally{if(!cancelled)setHydrated(true)}})();return()=>{cancelled=true}
  },[ready,retry]);
@@ -39,5 +39,5 @@ export function useCloudLibrary(books:Book[],ready:boolean,translations:Record<s
  },[ids,available,hydrated,retry,syncing]);
  useEffect(()=>{if(!available||!hydrated)return;const interval=setInterval(()=>{flush()},8000);return()=>clearInterval(interval)},[available,hydrated]);
  function sync(){failed.current.clear();setRetry(n=>n+1)}
- return {status,hydrated,available,records,syncing,sync,queueOriginal:(id:string,file:File)=>{originals.current.set(id,file);pendingFile(id,file).catch(()=>{if(alive.current)setStatus('原始 EPUB 暂存失败；请保持页面打开，等待云端上传完成。')})}};
+ return {status,hydrated,available,records,syncing,sync,saveMetadata:async(book:Book)=>{await saveBook(book);setStatus('书籍目录已保存到私有云端。')},queueOriginal:(id:string,file:File)=>{originals.current.set(id,file);pendingFile(id,file).catch(()=>{if(alive.current)setStatus('原始 EPUB 暂存失败；请保持页面打开，等待云端上传完成。')})}};
 }
