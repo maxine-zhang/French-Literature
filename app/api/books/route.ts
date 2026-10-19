@@ -22,7 +22,7 @@ export async function POST(req:Request){const denied=access(req);if(denied)retur
  }catch{return Response.json({error:'书籍云端登记失败，浏览器中的副本仍保留。'},{status:502})}}
 export async function PATCH(req:Request){const denied=access(req);if(denied)return denied;
  try{if(Number(req.headers.get('content-length'))>1500000)return Response.json({error:'译文批次过大。'},{status:413});const body=await req.json(),{id,translations}=body;if(!validBookId(id)||!translations||typeof translations!=='object'||Array.isArray(translations)||Object.keys(translations).length>30)return Response.json({error:'译文格式无效。'},{status:400});
- const entries=Object.entries(translations);for(const [key,value]of entries)if(!key.startsWith(`${id}:`)||!new RegExp(`^${id}:\\d+:\\d+:(zh|en)$`).test(key)||typeof value!=='string'||value.length>100000||!value.trim())return Response.json({error:'译文内容无效。'},{status:400});
+ const entries=Object.entries(translations);for(const [key,value]of entries)if(!key.startsWith(`${id}:`)||!new RegExp(`^${id}:\\d+:\\d+:(zh|en)(:s1:\\d+)?$`).test(key)||typeof value!=='string'||value.length>100000||!value.trim())return Response.json({error:'译文内容无效。'},{status:400});
  const exists=await readCloud(`library-index/${id}.json`,10000);if(!exists)return Response.json({error:'请先保存书籍。'},{status:409});
  for(let attempt=0;attempt<3;attempt++){const current=await readCloud<Record<string,string>>(`library-translations/${id}.json`,16000000);try{await writeCloud(`library-translations/${id}.json`,{...current?.value,...translations},{etag:current?.etag,overwrite:Boolean(current)});return Response.json({saved:entries.map(([k])=>k)},{headers})}catch(e){if(attempt===2)throw e}}
  throw Error();

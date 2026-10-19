@@ -1,8 +1,9 @@
 'use client';
 import {useEffect, useRef, useState} from 'react';
+import {translationEntries} from './readingSegments';
 import {splitText} from './text';
 
-type Book = {id: string; chapters: {paragraphs: string[]}[]};
+type Book = {id: string; chapter?:number; position?:number; chapters: {paragraphs: string[]}[]};
 export function useBookTranslation(book: Book, lang: string, enabled: boolean, translations: Record<string, string>, onTranslation: (key: string, value: string) => void) {
   const cache = useRef(translations), callback = useRef(onTranslation);
   cache.current = translations; callback.current = onTranslation;
@@ -10,8 +11,8 @@ export function useBookTranslation(book: Book, lang: string, enabled: boolean, t
   const [status, setStatus] = useState({done: 0, total: 0, error: '', running: false});
   useEffect(() => {
     const controller = new AbortController();
-    const entries = book.chapters.flatMap((chapter, ci) => chapter.paragraphs.map((text, pi) => ({key: `${book.id}:${ci}:${pi}:${lang}`, text})));
-    let done = entries.filter(e => Boolean(cache.current[e.key])).length;
+    const entries = translationEntries(book,lang,cache.current).sort((a,b)=>Number(b.chapter===book.chapter)-Number(a.chapter===book.chapter)||Number(b.paragraph===(book.position||0))-Number(a.paragraph===(book.position||0)));
+    let done = entries.filter(e => Boolean(cache.current[e.key]||e.existing)).length;
     setStatus({done, total: entries.length, error: '', running: enabled && !paused && done < entries.length});
     if (!enabled || paused) return () => controller.abort();
     (async () => {
@@ -19,6 +20,7 @@ export function useBookTranslation(book: Book, lang: string, enabled: boolean, t
         for (const entry of entries) {
           if (controller.signal.aborted) return;
           if (cache.current[entry.key]) continue;
+          if(entry.existing){cache.current={...cache.current,[entry.key]:entry.existing};callback.current(entry.key,entry.existing);continue;}
           const translated: string[] = [];
           for (const chunk of splitText(entry.text, 6000)) {
             const response = await fetch('/api/study', {method: 'POST', signal: controller.signal,
@@ -38,6 +40,6 @@ export function useBookTranslation(book: Book, lang: string, enabled: boolean, t
       }
     })();
     return () => controller.abort();
-  }, [book.id, book.chapters, lang, enabled, paused, retry]);
+  }, [book.id, book.chapters, book.chapter, lang, enabled, paused, retry]);
   return {...status, paused, togglePause: () => setPaused(v => !v), retry: () => setRetry(v => v + 1)};
 }
