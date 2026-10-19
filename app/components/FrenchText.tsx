@@ -1,5 +1,6 @@
 'use client';
 import {useEffect, useId, useRef, useState} from 'react';
+import SafeMarkdown from './SafeMarkdown';
 import {formatMatch,lookupLocal,Match} from '../lib/dictionary';
 const aiCache = new Map<string,string>();
 type Popup={word:string;matches:Match[];warning:string;loading:boolean;ai:string;aiBusy:boolean;aiError:boolean;left:number;top:number};
@@ -23,6 +24,6 @@ export default function FrenchText({text,onSelect,onSpeak,onSave}:{text:string;o
  <span role="status">{popup.loading?'正在加载本地词库…':!visible.length?'本地词库暂未收录；可切换语言或点击 AI 解释本句。':''}{popup.warning&&<span className="lookup-error">{popup.warning}</span>}</span>
  {visible.map((m,i)=><span className="dictionary-entry" key={i}><b lang="fr">{m.word}</b>{m.word.toLowerCase()!==popup.word.toLowerCase()&&<small>{m.inferred?'可能的原形':'词形对应原形'}</small>}<span>{[m.ipa&&`/${m.ipa}/`,m.pos,m.gender].filter(Boolean).join(' · ')}</span><span>{m.meaning}</span><small>{m.dictionary} · {m.license}</small><button onClick={()=>onSave(popup.word,formatMatch(m))}>收藏此义项</button></span>)}
  <span className="popup-actions"><button onClick={()=>onSpeak(popup.word)}>听发音</button><button disabled={popup.aiBusy} onClick={explain}>{popup.aiBusy?'AI 解释中…':'AI 解释本句'}</button></span><small>AI 解释会发送当前词和段落，可能产生费用。</small>
- {popup.ai&&<span className={`dictionary-ai ${popup.aiError?'lookup-error':''}`} role="status"><b>AI 上下文解释</b><span>{popup.ai}</span>{!popup.aiError&&<button onClick={()=>onSave(popup.word,popup.ai)}>收藏 AI 释义</button>}</span>}
+ {popup.ai&&<span className={`dictionary-ai ${popup.aiError?'lookup-error':''}`} role="status"><b>AI 上下文解释</b><SafeMarkdown text={popup.ai}/>{!popup.aiError&&<button onClick={()=>onSave(popup.word,popup.ai)}>收藏 AI 释义</button>}</span>}
  </span>}</span>;
 }

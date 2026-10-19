@@ -13,3 +13,8 @@ export function splitText(text: string, limit = 3500): string[] {
   if (rest) parts.push(rest);
   return parts;
 }
+
+export function splitForSpeech(text:string,limit=220):string[]{
+ const sentences=typeof Intl.Segmenter==='function'?[...new Intl.Segmenter('fr',{granularity:'sentence'}).segment(text)].map(s=>s.segment):text.split(/(?<=[.!?…])\s+/u);
+ return sentences.flatMap(sentence=>splitText(sentence,limit)).map(s=>s.trim()).filter(Boolean);
+}

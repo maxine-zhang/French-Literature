@@ -1,9 +1,9 @@
 import {requireAccess} from '../../lib/access';
+import {cloudConfigured,readCloud,writeCloud,translationPath} from '../../lib/cloud';
 export const maxDuration = 60;
 export async function POST(req: Request) {
   const denied = requireAccess(req);
   if (denied) return denied;
-  if (!process.env.AI_API_KEY) return Response.json({error: 'AI 尚未配置，请在服务端设置 AI_API_KEY、AI_BASE_URL 和 AI_MODEL。'}, {status: 503});
   let body;
   try {body = await req.json();} catch {return Response.json({error: '请求格式无效。'}, {status: 400});}
   if (!body || typeof body.text !== 'string' || !body.text.trim() || body.text.length > 18000) return Response.json({error: '请提供 1–18000 个字符的文本。'}, {status: 400});
@@ -17,6 +17,9 @@ export async function POST(req: Request) {
     listen: '根据片段设计两道法语理解题和一个原句填空，答案放在末尾。',
   };
   if (typeof body.task !== 'string' || !Object.hasOwn(tasks, body.task)) return Response.json({error: '不支持的任务。'}, {status: 400});
+  const cachePath=body.task==='translate'&&cloudConfigured()?translationPath(body.text,body.lang):null;
+  if(cachePath){try{const saved=await readCloud<{text:string}>(cachePath,1000000);if(saved&&typeof saved.value.text==='string'&&saved.value.text.trim())return Response.json({text:saved.value.text,cached:true,cloudSaved:true},{headers:{'Cache-Control':'private, no-store'}})}catch{return Response.json({error:'云端翻译缓存暂时无法读取；为避免重复计费，已暂停 AI 请求，请稍后重试。'},{status:503})}}
+  if(!process.env.AI_API_KEY)return Response.json({error:'AI 尚未配置。'},{status:503});
   try {
     const upstream = await fetch((process.env.AI_BASE_URL || 'https://api.openai.com/v1').replace(/\/$/, '') + '/chat/completions', {
       method: 'POST', headers: {Authorization: `Bearer ${process.env.AI_API_KEY}`, 'Content-Type': 'application/json'}, signal: AbortSignal.any([req.signal, AbortSignal.timeout(45000)]),
@@ -29,6 +32,7 @@ export async function POST(req: Request) {
     const data = await upstream.json();
     const text = data.choices?.[0]?.message?.content;
     if (typeof text !== 'string' || !text.trim()) return Response.json({error: 'AI 未返回内容，请重试。'}, {status: 502});
-    return Response.json({text}, {headers: {'Cache-Control': 'private, no-store'}});
+    let cloudSaved=false;if(cachePath){try{await writeCloud(cachePath,{text},{overwrite:false});cloudSaved=true}catch{try{cloudSaved=Boolean(await readCloud(cachePath,1000000))}catch{}}}
+    return Response.json({text,cloudSaved}, {headers: {'Cache-Control': 'private, no-store'}});
   } catch {return Response.json({error: '请求超时或服务连接失败，请重试。'}, {status: 502});}
 }

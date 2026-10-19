@@ -1,0 +1,5 @@
+const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),ts=require('typescript'),path=require('node:path'),{pathToFileURL}=require('node:url');
+test('AI Markdown renders bold and list formatting without raw HTML or active links',async()=>{
+ const file=path.resolve('tests/.markdown-test.mjs');const source=ts.transpileModule(fs.readFileSync('app/components/SafeMarkdown.tsx','utf8'),{compilerOptions:{module:ts.ModuleKind.ESNext,target:ts.ScriptTarget.ES2022,jsx:ts.JsxEmit.ReactJSX}}).outputText;fs.writeFileSync(file,source);
+ try{const {default:SafeMarkdown}=await import(pathToFileURL(file)),React=require('react'),{renderToStaticMarkup}=require('react-dom/server');const html=renderToStaticMarkup(React.createElement(SafeMarkdown,{text:'* **lieu**\n* **词性/属性**：名词，阳性\n\n<script>alert(1)</script>\n\n[link](javascript:alert(1))'}));assert.match(html,/<strong>lieu<\/strong>/);assert.match(html,/role="listitem"/);assert(!html.includes('**'));assert(!html.includes('<script'));assert(!html.includes('href='));assert(!html.includes('<p>'));}finally{fs.unlinkSync(file)}
+});

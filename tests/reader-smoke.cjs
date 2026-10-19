@@ -53,13 +53,16 @@ function wav(){const samples=24000*2,buffer=Buffer.alloc(44+samples*2);buffer.wr
  await page.getByText('matin：本句中的中文释义。',{exact:true}).waitFor();
  assert.equal(lookups.length,1,'manual AI explanations should use the contextual cache');
  await page.getByRole('dialog').getByRole('button',{name:'关闭释义',exact:true}).click();
+ await page.getByRole('button',{name:'偏好设置',exact:true}).click();
+ await page.getByRole('combobox',{name:'朗读方式',exact:true}).selectOption('cloud');
+ await page.getByRole('button',{name:'沉浸阅读',exact:true}).click();
  await page.getByRole('button',{name:'连续朗读',exact:true}).click();
  await page.waitForFunction(()=>document.querySelector('audio')===null); // playback uses an off-DOM HTMLAudioElement
  await page.waitForTimeout(500);
  assert.equal(speech.length,1);assert.match(speech[0].text,/Chaque matin/);
- await page.getByRole('button',{name:'暂停或继续',exact:true}).click();
+ await page.getByRole('button',{name:'暂停朗读',exact:true}).first().click();
  await page.getByText('朗读已暂停',{exact:true}).waitFor();
- await page.getByRole('button',{name:'停止',exact:true}).click();
+ await page.getByRole('button',{name:'停止',exact:true}).first().click();
  await page.waitForTimeout(2400);assert.equal(speech.length,1,'stop must prevent the next paragraph');
  console.log('PASS: cloud speech request, pause, stop and cancellation of continuous reading');
  await page.getByRole('button',{name:'我的书架',exact:true}).click();

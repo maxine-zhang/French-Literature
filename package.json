@@ -17,12 +17,14 @@
     "pretypecheck": "npm run dictionaries"
   },
   "dependencies": {
+    "@vercel/blob": "^2.8.2",
     "fast-xml-parser": "^5.11.2",
     "fflate": "0.8.2",
     "lucide-react": "1.31.0",
     "next": "16.3.4",
     "react": "19.2.6",
-    "react-dom": "19.2.6"
+    "react-dom": "19.2.6",
+    "react-markdown": "^10.1.0"
   },
   "devDependencies": {
     "@types/node": "22.19.19",
